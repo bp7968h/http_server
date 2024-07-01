@@ -1,16 +1,20 @@
 use std::net::{TcpListener, TcpStream};
 use std::io::{prelude::*, BufReader};
 use std::fs;
+use http_server::ThreadPool;
 
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:8080").unwrap_or_else( |e| {
         panic!("Binding Failed: {}",e);
     });
+    let pool = ThreadPool::new();
 
     for stream in listener.incoming(){
         let stream = stream.unwrap();
 
-        handle_connection(stream);
+        pool.execute(|| {
+            handle_connection(stream);
+        });
     }
 }
 
@@ -29,6 +33,8 @@ fn handle_connection(mut stream: TcpStream){
 
     let response =
         format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+
+    // println!("Response Bytes: {:?}", response);
 
     stream.write_all(response.as_bytes()).unwrap();
 }
